@@ -12,7 +12,7 @@ export default function EditProductPage() {
     data: product,
     isLoading,
     error,
-  } = useGetProductBySlugQuery(slug, {
+  } = useGetProductBySlugQuery(slug!, {
     skip: !slug,
   });
 

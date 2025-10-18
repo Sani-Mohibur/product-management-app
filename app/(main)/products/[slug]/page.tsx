@@ -18,7 +18,7 @@ export default function ProductDetailsPage() {
     data: product,
     error,
     isLoading,
-  } = useGetProductBySlugQuery(slug, {
+  } = useGetProductBySlugQuery(slug!, {
     skip: !slug,
   });
 
