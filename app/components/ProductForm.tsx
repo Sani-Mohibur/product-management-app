@@ -12,7 +12,7 @@ import {
 import { useGetCategoriesQuery } from "@/app/lib/services/categoriesService";
 import { useRouter } from "next/navigation";
 
-// 1. Change schema to expect an array of OBJECTS
+// 1. Schema with z.coerce.number()
 const productSchema = z.object({
   name: z
     .string()
@@ -22,13 +22,12 @@ const productSchema = z.object({
     .min(10, { message: "Description must be at least 10 characters long" }),
   price: z.coerce
     .number()
-    .positive({ message: "Price must be a positive number" }),
+    .positive({ message: "Price must be a positive number" }), // THIS IS THE FIX
   categoryId: z.string().min(1, { message: "Please select a category" }),
   images: z
     .array(
       z.object({
-        // Each item is an object...
-        url: z.string().url({ message: "Please enter a valid URL" }), // ...with a 'url' property
+        url: z.string().url({ message: "Please enter a valid URL" }),
       })
     )
     .min(1, { message: "Please add at least one image URL" }),
@@ -57,24 +56,27 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     control,
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
+    // 2. Complete defaultValues for both modes
     defaultValues: initialData
       ? {
           name: initialData.name,
           description: initialData.description,
           price: initialData.price,
           categoryId: initialData.category.id,
-          // This is the fix:
           images:
             (initialData.images &&
               initialData.images.map((url) => ({ url: url }))) ||
             [],
         }
       : {
+          name: "",
+          description: "",
+          price: 0, // Using 0 here is fine because z.coerce.number() will handle it
+          categoryId: "",
           images: [],
         },
   });
 
-  // No generic <ProductFormData> is needed here now
   const { fields, append, remove } = useFieldArray({
     control,
     name: "images",
@@ -82,17 +84,16 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
   const handleAddImage = () => {
     if (imageInput.trim() !== "") {
-      // 3. Append an OBJECT, not a string
       append({ url: imageInput });
       setImageInput("");
     }
   };
 
-  const onSubmit: SubmitHandler<ProductFormData> = async (data) => {
-    // 4. Transform the form data back into what the API expects
+  // 3. Async logic in its own function
+  const performSubmit = async (data: ProductFormData) => {
     const submissionData = {
       ...data,
-      images: data.images.map((img) => img.url), // Convert [{url: '...'} Sback to ['...']
+      images: data.images.map((img) => img.url), // Convert objects back to strings
     };
 
     try {
@@ -101,19 +102,24 @@ export default function ProductForm({ initialData }: ProductFormProps) {
           id: initialData.id,
           body: submissionData,
         }).unwrap();
-        router.replace("/products");
       } else {
         await createProduct(submissionData).unwrap();
-        router.push("/products");
       }
+      router.replace("/products"); // Use replace for both create and update
     } catch (error) {
       console.error("Failed to save product:", error);
     }
   };
 
+  // 4. Synchronous wrapper for handleSubmit (fixes the error)
+  const handleFormSubmit: SubmitHandler<ProductFormData> = (data) => {
+    performSubmit(data);
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Name, Category, Description, Price fields... */}
+    // 5. Use the new wrapper function
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      {/* Name */}
       <div>
         <label
           htmlFor="name"
@@ -133,6 +139,8 @@ export default function ProductForm({ initialData }: ProductFormProps) {
           </p>
         )}
       </div>
+
+      {/* Category */}
       <div>
         <label
           htmlFor="categoryId"
@@ -161,6 +169,8 @@ export default function ProductForm({ initialData }: ProductFormProps) {
           </p>
         )}
       </div>
+
+      {/* Description */}
       <div>
         <label
           htmlFor="description"
@@ -180,6 +190,8 @@ export default function ProductForm({ initialData }: ProductFormProps) {
           </p>
         )}
       </div>
+
+      {/* Price */}
       <div>
         <label
           htmlFor="price"
@@ -201,7 +213,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         )}
       </div>
 
-      {/* Image URL Input Section */}
+      {/* Images */}
       <div>
         <label
           htmlFor="imageInput"
@@ -231,12 +243,10 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             {errors.images.message}
           </p>
         )}
-
         <div className="mt-4 space-y-2">
           {fields.map((field, index) => (
             <div key={field.id} className="flex items-center gap-2">
               <input
-                // 5. Register the 'url' property of the object
                 {...register(`images.${index}.url` as const)}
                 className="w-full rounded-md bg-dark-space/50 p-2 text-ghost-white/70"
                 readOnly
