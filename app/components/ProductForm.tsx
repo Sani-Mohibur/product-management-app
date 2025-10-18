@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, SubmitHandler, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+// We no longer import zod or zodResolver
 import {
   useCreateProductMutation,
   useUpdateProductMutation,
@@ -12,28 +11,14 @@ import {
 import { useGetCategoriesQuery } from "@/app/lib/services/categoriesService";
 import { useRouter } from "next/navigation";
 
-// 1. Schema with z.coerce.number()
-const productSchema = z.object({
-  name: z
-    .string()
-    .min(3, { message: "Name must be at least 3 characters long" }),
-  description: z
-    .string()
-    .min(10, { message: "Description must be at least 10 characters long" }),
-  price: z.coerce
-    .number()
-    .positive({ message: "Price must be a positive number" }), // THIS IS THE FIX
-  categoryId: z.string().min(1, { message: "Please select a category" }),
-  images: z
-    .array(
-      z.object({
-        url: z.string().url({ message: "Please enter a valid URL" }),
-      })
-    )
-    .min(1, { message: "Please add at least one image URL" }),
-});
-
-type ProductFormData = z.infer<typeof productSchema>;
+// We define our type manually instead of using Zod
+type ProductFormData = {
+  name: string;
+  description: string;
+  price: number;
+  categoryId: string;
+  images: { url: string }[];
+};
 
 interface ProductFormProps {
   initialData?: Product;
@@ -54,32 +39,44 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     handleSubmit,
     formState: { errors },
     control,
+    reset,
   } = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema),
-    // 2. Complete defaultValues for both modes
-    defaultValues: initialData
-      ? {
-          name: initialData.name,
-          description: initialData.description,
-          price: initialData.price,
-          categoryId: initialData.category.id,
-          images:
-            (initialData.images &&
-              initialData.images.map((url) => ({ url: url }))) ||
-            [],
-        }
-      : {
-          name: "",
-          description: "",
-          price: 0, // Using 0 here is fine because z.coerce.number() will handle it
-          categoryId: "",
-          images: [],
-        },
+    // We removed the resolver
+    defaultValues: {
+      name: "",
+      description: "",
+      price: undefined, // Use undefined for empty number field
+      categoryId: "",
+      images: [],
+    },
   });
+
+  // This hook pre-fills the form for editing
+  useEffect(() => {
+    if (initialData) {
+      reset({
+        name: initialData.name,
+        description: initialData.description,
+        price: initialData.price,
+        categoryId: initialData.category.id,
+        images:
+          (initialData.images &&
+            initialData.images.map((url) => ({ url: url }))) ||
+          [],
+      });
+    }
+  }, [initialData, reset]);
 
   const { fields, append, remove } = useFieldArray({
     control,
     name: "images",
+    // We add our array validation rules here
+    rules: {
+      minLength: {
+        value: 1,
+        message: "Please add at least one image URL",
+      },
+    },
   });
 
   const handleAddImage = () => {
@@ -89,11 +86,11 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     }
   };
 
-  // 3. Async logic in its own function
+  // This logic remains the same
   const performSubmit = async (data: ProductFormData) => {
     const submissionData = {
       ...data,
-      images: data.images.map((img) => img.url), // Convert objects back to strings
+      images: data.images.map((img) => img.url),
     };
 
     try {
@@ -105,21 +102,20 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       } else {
         await createProduct(submissionData).unwrap();
       }
-      router.replace("/products"); // Use replace for both create and update
+      router.replace("/products");
     } catch (error) {
       console.error("Failed to save product:", error);
     }
   };
 
-  // 4. Synchronous wrapper for handleSubmit (fixes the error)
+  // This wrapper also remains the same
   const handleFormSubmit: SubmitHandler<ProductFormData> = (data) => {
     performSubmit(data);
   };
 
   return (
-    // 5. Use the new wrapper function
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      {/* Name */}
+      {/* Name: Added built-in validation */}
       <div>
         <label
           htmlFor="name"
@@ -130,7 +126,13 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         <input
           id="name"
           type="text"
-          {...register("name")}
+          {...register("name", {
+            required: "Name is required",
+            minLength: {
+              value: 3,
+              message: "Name must be at least 3 characters",
+            },
+          })}
           className="w-full rounded-md border border-tan-hide/50 bg-dark-space p-3 text-ghost-white focus:border-tan-hide focus:outline-none focus:ring-1 focus:ring-tan-hide"
         />
         {errors.name && (
@@ -140,7 +142,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         )}
       </div>
 
-      {/* Category */}
+      {/* Category: Added built-in validation */}
       <div>
         <label
           htmlFor="categoryId"
@@ -150,7 +152,9 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         </label>
         <select
           id="categoryId"
-          {...register("categoryId")}
+          {...register("categoryId", {
+            required: "Please select a category",
+          })}
           disabled={isLoadingCategories}
           className="w-full rounded-md border border-tan-hide/50 bg-dark-space p-3 text-ghost-white focus:border-tan-hide focus:outline-none focus:ring-1 focus:ring-tan-hide disabled:opacity-50"
         >
@@ -170,7 +174,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         )}
       </div>
 
-      {/* Description */}
+      {/* Description: Added built-in validation */}
       <div>
         <label
           htmlFor="description"
@@ -181,7 +185,13 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         <textarea
           id="description"
           rows={4}
-          {...register("description")}
+          {...register("description", {
+            required: "Description is required",
+            minLength: {
+              value: 10,
+              message: "Description must be at least 10 characters",
+            },
+          })}
           className="w-full rounded-md border border-tan-hide/50 bg-dark-space p-3 text-ghost-white focus:border-tan-hide focus:outline-none focus:ring-1 focus:ring-tan-hide"
         />
         {errors.description && (
@@ -191,7 +201,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         )}
       </div>
 
-      {/* Price */}
+      {/* Price: Added built-in validation */}
       <div>
         <label
           htmlFor="price"
@@ -203,7 +213,11 @@ export default function ProductForm({ initialData }: ProductFormProps) {
           id="price"
           type="number"
           step="0.01"
-          {...register("price")}
+          {...register("price", {
+            required: "Price is required",
+            valueAsNumber: true, // This converts the input to a number
+            min: { value: 0.01, message: "Price must be positive" },
+          })}
           className="w-full rounded-md border border-tan-hide/50 bg-dark-space p-3 text-ghost-white focus:border-tan-hide focus:outline-none focus:ring-1 focus:ring-tan-hide"
         />
         {errors.price && (
@@ -238,18 +252,24 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             Add
           </button>
         </div>
-        {errors.images && (
+        {/* We now get the array-level error from errors.images.root */}
+        {errors.images?.root && (
           <p className="mt-2 text-sm text-burnt-sienna">
-            {errors.images.message}
+            {errors.images.root.message}
           </p>
         )}
         <div className="mt-4 space-y-2">
           {fields.map((field, index) => (
             <div key={field.id} className="flex items-center gap-2">
               <input
-                {...register(`images.${index}.url` as const)}
+                {...register(`images.${index}.url` as const, {
+                  required: "URL cannot be empty",
+                  pattern: {
+                    value: /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i,
+                    message: "Must be a valid URL",
+                  },
+                })}
                 className="w-full rounded-md bg-dark-space/50 p-2 text-ghost-white/70"
-                readOnly
               />
               <button
                 type="button"
@@ -258,6 +278,12 @@ export default function ProductForm({ initialData }: ProductFormProps) {
               >
                 Remove
               </button>
+              {/* This will show errors for individual image inputs */}
+              {errors.images?.[index]?.url && (
+                <p className="mt-1 text-xs text-burnt-sienna">
+                  {errors.images[index]?.url?.message}
+                </p>
+              )}
             </div>
           ))}
         </div>
