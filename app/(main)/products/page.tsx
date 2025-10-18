@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-// 1. Import useRouter and useSearchParams
+// 1. Import Suspense
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-
 import {
   useGetProductsQuery,
   useSearchProductsQuery,
@@ -17,27 +16,21 @@ import Link from "next/link";
 
 const PRODUCTS_PER_PAGE = 8;
 
-export default function ProductsPage() {
-  // 2. Setup router and search params
+// 2. Create the inner component that uses useSearchParams
+function ProductsList() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // 3. Read page and category state FROM the URL
   const page = parseInt(searchParams.get("page") || "1");
   const categoryId = searchParams.get("category") || "";
-
-  // Calculate offset from the URL page number
   const offset = (page - 1) * PRODUCTS_PER_PAGE;
 
-  // Local state is still needed for debounced search and the delete modal
   const [searchTerm, setSearchTerm] = useState("");
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
-
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const { data: categories } = useGetCategoriesQuery();
 
-  // 4. Pass URL-derived state (offset, categoryId) to the query
   const {
     data: paginatedProducts,
     error: paginatedError,
@@ -61,36 +54,30 @@ export default function ProductsPage() {
   const isLoading = paginatedLoading || searchLoading;
   const error = paginatedError || searchError;
 
-  // 5. Rewrite handlers to update the URL
+  // --- Handlers remain the same ---
   const handleNext = () => {
     const newPage = page + 1;
     const current = new URLSearchParams(Array.from(searchParams.entries()));
     current.set("page", newPage.toString());
     router.push(`/products?${current.toString()}`);
   };
-
   const handlePrevious = () => {
     const newPage = page - 1;
     const current = new URLSearchParams(Array.from(searchParams.entries()));
     current.set("page", newPage.toString());
     router.push(`/products?${current.toString()}`);
   };
-
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCategory = e.target.value;
     const current = new URLSearchParams(Array.from(searchParams.entries()));
-
-    // Set new category and reset page to 1
     current.set("page", "1");
     if (newCategory) {
       current.set("category", newCategory);
     } else {
-      current.delete("category"); // Remove if "All Categories" is selected
+      current.delete("category");
     }
     router.push(`/products?${current.toString()}`);
   };
-
-  // Delete handlers remain the same
   const openDeleteModal = (id: string) => setProductToDelete(id);
   const closeDeleteModal = () => setProductToDelete(null);
   const handleConfirmDelete = async () => {
@@ -105,6 +92,7 @@ export default function ProductsPage() {
     }
   };
 
+  // --- Return JSX (Moved from the outer component) ---
   return (
     <>
       <main className="min-h-screen bg-dark-space p-4 sm:p-6 lg:p-8">
@@ -112,7 +100,6 @@ export default function ProductsPage() {
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-3xl font-bold text-ghost-white">Products</h1>
             <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row">
-              {/* 6. Set select value from URL state */}
               <select
                 value={categoryId}
                 onChange={handleCategoryChange}
@@ -125,7 +112,6 @@ export default function ProductsPage() {
                   </option>
                 ))}
               </select>
-
               <input
                 type="text"
                 placeholder="Search by name..."
@@ -190,7 +176,6 @@ export default function ProductsPage() {
 
               {!debouncedSearchTerm && (
                 <div className="mt-8 flex justify-center gap-4">
-                  {/* 7. Disable button based on URL page state */}
                   <button
                     onClick={handlePrevious}
                     disabled={page === 1}
@@ -229,5 +214,23 @@ export default function ProductsPage() {
         message="Are you sure you want to delete this product? This action cannot be undone."
       />
     </>
+  );
+}
+
+// 3. The main export wraps ProductsList in Suspense
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ProductsList />
+    </Suspense>
+  );
+}
+
+// 4. A simple fallback component
+function LoadingFallback() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-dark-space p-4 sm:p-6 lg:p-8">
+      <p className="text-center text-ghost-white">Loading products page...</p>
+    </main>
   );
 }
