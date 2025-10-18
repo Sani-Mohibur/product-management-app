@@ -1,26 +1,32 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --color-dark-space: #0d1821; /* Dark background/ text */
+  --color-ghost-white: #eff1f3; /* Light background/ text */
+  --color-forest-green: #4e6e50; /* Primary actions */
+  --color-tan-hide: #ad8a64; /* Secondary accents */
+  --color-burnt-sienna: #a44a3f; /* Destructive actions (delete) */
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Fallback color */
+  background-color: var(--color-dark-space);
+
+  /* A very subtle diagonal gradient.
+    It fades from our dark-space color to a slightly 
+    lighter blue-gray (#1b2735) and back to dark-space.
+    This just gives the background a little bit of life.
+  */
+  background-image: linear-gradient(
+    to bottom right,
+    var(--color-dark-space),
+    #1b2735,
+    /* A slightly lighter, muted blue */ var(--color-dark-space)
+  );
+
+  /* Ensure it covers the whole page and doesn't scroll */
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height: 100vh;
 }
