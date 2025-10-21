@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Product Management App
+
+A modern web application built with Next.js (App Router) to manage products (CRUD operations) with authentication, search, pagination, filtering, and validation.
+
+## Goal
+
+The main goal was to build a polished Next.js application allowing users to browse, create, edit, view details, and delete products, focusing on UI/UX, validation, and clean code using a specific tech stack and mock API.
+
+## Tech Stack
+
+* **Framework:** Next.js 14+ (App Router)
+* **Library:** React 18+
+* **State Management:** Redux Toolkit (with RTK Query for data fetching)
+* **Styling:** Tailwind CSS v4
+* **Language:** TypeScript
+* **Form Management:** React Hook Form (for built-in validation)
+* **Linting:** ESLint
+
+## Features Implemented
+
+* **Authentication:** Simple email-based JWT authentication (Login/Logout). Token persisted in `localStorage`.
+* **Product CRUD:**
+    * **List Products:** Display products with pagination.
+    * **Search Products:** Real-time search by product name (debounced).
+    * **Filter Products:** Filter products by category using a dropdown.
+    * **View Product Details:** Dedicated page for single product information.
+    * **Create Product:** Form with client-side validation for name, description, price, category, and image URLs.
+    * **Edit Product:** Reusable form pre-filled with existing data for updates.
+    * **Delete Product:** Functionality with a confirmation modal on both the list and details pages.
+* **Routing:** Utilizes Next.js App Router with Route Groups (`(auth)`, `(main)`) and dynamic routes (`[slug]`). URL updates for pagination and filtering to support browser history.
+* **State Management:** Centralized state using Redux Toolkit, including RTK Query for efficient data fetching, caching, and automatic refetching after mutations.
+* **UI/UX:**
+    * Responsive design (Mobile/Desktop).
+    * Consistent styling based on the provided color palette (`#0D1821`, `#EFF1F3`, `#4E6E5D`, `#AD8A64`, `#A44A3F`).
+    * Clear loading and error states for data operations.
+    * User-friendly navigation and form handling.
+    * Gradient background and improved login page UI.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+* Node.js (v18 or later recommended)
+* npm or yarn or pnpm
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1.  Clone the repository:
+    ```bash
+    git clone [https://github.com/Sani-Mohibur/product-management-app.git](https://github.com/Sani-Mohibur/product-management-app.git)
+    ```
+2.  Navigate into the project directory:
+    ```bash
+    cd product-management-app
+    ```
+3.  Install dependencies:
+    ```bash
+    npm install
+    # or
+    # yarn install
+    # or
+    # pnpm install
+    ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Running the Development Server
 
-## Learn More
+1.  Run the development server:
+    ```bash
+    npm run dev
+    # or
+    # yarn dev
+    # or
+    # pnpm dev
+    ```
+2.  Open [http://localhost:3000](http://localhost:3000) with your browser to see the application. The app will automatically redirect you to `/login`.
 
-To learn more about Next.js, take a look at the following resources:
+### Authentication Email
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Use the email `mohiburrahmansani@gmail.com` to log in, as required by the mock API.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+* **Live URL:** [https://product-management-app-azure.vercel.app/login](https://product-management-app-azure.vercel.app/login)
+* **GitHub Repository:** [https://github.com/Sani-Mohibur/product-management-app](https://github.com/Sani-Mohibur/product-management-app)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Deployed via Vercel.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Potential Future Improvements
+
+* Implement toast notifications for user feedback.
+* Add skeleton loaders for better perceived performance.
+* Implement product sorting.
+* Add automated tests (Unit/Integration).
+* Refactor product card into a reusable component.
+* Enhance form UX with image previews and unsaved changes warnings.
